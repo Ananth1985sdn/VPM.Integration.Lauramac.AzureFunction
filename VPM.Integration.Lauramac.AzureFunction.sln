@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VPM.Integration.Lauramac.AzureFunction", "VPM.Integration.Lauramac.AzureFunction.csproj", "{7DB4DC00-75C9-4CA8-91DA-2B9CD8A4301B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7DB4DC00-75C9-4CA8-91DA-2B9CD8A4301B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DB4DC00-75C9-4CA8-91DA-2B9CD8A4301B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DB4DC00-75C9-4CA8-91DA-2B9CD8A4301B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DB4DC00-75C9-4CA8-91DA-2B9CD8A4301B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {47E92CCC-F2E0-4DDA-82D0-2F532E58DCA8}
+	EndGlobalSection
+EndGlobal
