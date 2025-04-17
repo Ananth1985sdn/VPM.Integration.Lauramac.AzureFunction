@@ -10,7 +10,7 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Encompass
     {
         public string Id { get; set; }
         public List<DocumentPage> Pages { get; set; }
-        public string originalUrls { get; set; }
+        public List<string> originalUrls { get; set; }
 
     }
 }

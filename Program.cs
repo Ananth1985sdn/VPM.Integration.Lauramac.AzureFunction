@@ -1,5 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using VPM.Integration.Lauramac.AzureFunction.Interface.ILoanDataService;
+using VPM.Integration.Lauramac.AzureFunction.Services.LoanDataService;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -9,5 +14,8 @@ builder.ConfigureFunctionsWebApplication();
 // builder.Services
 //     .AddApplicationInsightsTelemetryWorkerService()
 //     .ConfigureFunctionsApplicationInsights();
+Microsoft.Extensions.Logging.ILogger logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+
+builder.Services.AddTransient<ILoanDataService, LoanDataService>();
 
 builder.Build().Run();
