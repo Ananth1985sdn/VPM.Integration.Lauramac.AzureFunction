@@ -174,8 +174,8 @@ namespace VPM.Integration.Lauramac.AzureFunction
                                 else
                                 {
                                     _logger.LogInformation($"Attachment Title: {attachment.Title}, CreatedBy: {attachment.AssignedTo?.EntityName}, File Size: {attachment.FileSize}");
-                                    loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
-                                    attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
+                                    //loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
+                                    //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
                                     var url = await GetDocumentURL(loan.LoanId, attachment.Id, token);
                                     if (url != null)
                                         await DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
