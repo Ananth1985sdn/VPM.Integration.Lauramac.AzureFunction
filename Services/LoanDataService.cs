@@ -227,7 +227,7 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
                     var fileName = loanId + "_" + lastName + "_shippingfiles.pdf";
 
                     #if DEBUG
-                    var downloadsPath = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
+                    var downloadsPath = Path.Combine("D:/local/", "temp");
                     #else
                      var downloadsPath = Path.Combine(Path.GetTempPath(), "Downloads");
                     #endif
