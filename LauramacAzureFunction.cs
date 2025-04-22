@@ -8,6 +8,7 @@ using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response;
+using VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request;
 
 namespace VPM.Integration.Lauramac.AzureFunction
 {
@@ -15,11 +16,13 @@ namespace VPM.Integration.Lauramac.AzureFunction
     {
         private readonly ILogger _logger;
         private readonly ILoanDataService _loanDataService;
+        private List<Models.Lauramac.Request.Loan> _loanList;
 
-        public LauramacAzureFunction(ILoggerFactory loggerFactory, ILoanDataService loanDataService)
+        public LauramacAzureFunction(ILoggerFactory loggerFactory, ILoanDataService loanDataService, List<Models.Lauramac.Request.Loan> loans)
         {
             _logger = loggerFactory.CreateLogger<LauramacAzureFunction>();
             _loanDataService = loanDataService;
+            _loanList = loans;
         }
 
         [Function("LauramacAzureFunction")]
@@ -86,7 +89,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
             {
                 try
                 {
-                    var loans = JsonConvert.DeserializeObject<List<Loan>>(response);
+                    var loans = JsonConvert.DeserializeObject<List<Models.Encompass.Loan>>(response);
                     _logger.LogInformation($"Number of Loans: {loans.Count}");
 
                     var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
@@ -113,8 +116,15 @@ namespace VPM.Integration.Lauramac.AzureFunction
                                 //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
                                 var url = await _loanDataService.GetDocumentUrl(loan.LoanId, attachment.Id, token);
                                 if (url != null)
-                                    await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
-                                break;
+                                {
+                                    var documentDownload = await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
+                                    if(documentDownload)
+                                    {
+                                        Models.Lauramac.Request.Loan loan1  = new Models.Lauramac.Request.Loan();
+                                        _loanList.Add(loan1);
+                                    }
+                                    break;
+                                }
                             }
                         }
 

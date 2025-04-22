@@ -200,9 +200,9 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             return documentDownloadUrl;
         }
 
-        public async Task DownloadDocument(string loanId, string lastName, string documentURL)
+        public async Task<bool> DownloadDocument(string loanId, string lastName, string documentURL)
         {
-
+            bool documentDownloaded = false;
             try
             {
                 if (string.IsNullOrWhiteSpace(documentURL))
@@ -240,13 +240,14 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
                     var filePath = Path.Combine(downloadsPath, fileName);
                     await File.WriteAllBytesAsync(filePath, pdfBytes).ConfigureAwait(false);
                     Console.WriteLine($"PDF downloaded successfully to: {filePath}");
+                    documentDownloaded = true;
                 }
-
+                return documentDownloaded;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while getting download pdf from {Url}", documentURL);
-                return;
+                return documentDownloaded;
             }
         }
     }
