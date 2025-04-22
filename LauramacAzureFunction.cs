@@ -7,7 +7,6 @@ using Newtonsoft.Json;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
-using VPM.Integration.Lauramac.AzureFunction.Services;
 
 namespace VPM.Integration.Lauramac.AzureFunction
 {
