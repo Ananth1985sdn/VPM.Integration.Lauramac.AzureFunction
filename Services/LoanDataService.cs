@@ -24,19 +24,21 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
         {
             try
             {
-                using var client = new HttpClient();
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                var response = await client.PostAsync(requestUrl, content);
-                if (response.IsSuccessStatusCode)
+                using (var client = new HttpClient())
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return json;
-                }
-                else
-                {
-                    // Handle error response
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    var response = await client.PostAsync(requestUrl, content);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        return json;
+                    }
+                    else
+                    {
+                        // Handle error response
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -50,32 +52,33 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
         {
             try
             {
-                using var client = new HttpClient();
-
-                var requestBody = new FormUrlEncodedContent(new[]
-                 {
-                new KeyValuePair<string, string>("grant_type", "password"),
-                new KeyValuePair<string, string>("username", username),
-                new KeyValuePair<string, string>("password", password),
-                new KeyValuePair<string, string>("client_id", clientId),
-                new KeyValuePair<string, string>("client_secret", clientSecret),
-                new KeyValuePair<string, string>("scope", "lp")
-            });
-
-
-                var response = await client.PostAsync(fullUrl, requestBody);
-
-                if (response.IsSuccessStatusCode)
+                using (var client = new HttpClient())
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    dynamic obj = JsonConvert.DeserializeObject(json);
-                    return obj.access_token;
-                }
-                else
-                {
-                    // Handle error response
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    var requestBody = new FormUrlEncodedContent(new[]
+                     {
+                            new KeyValuePair<string, string>("grant_type", "password"),
+                            new KeyValuePair<string, string>("username", username),
+                            new KeyValuePair<string, string>("password", password),
+                            new KeyValuePair<string, string>("client_id", clientId),
+                            new KeyValuePair<string, string>("client_secret", clientSecret),
+                            new KeyValuePair<string, string>("scope", "lp")
+                     });
+
+
+                    var response = await client.PostAsync(fullUrl, requestBody);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        dynamic obj = JsonConvert.DeserializeObject(json);
+                        return obj.access_token;
+                    }
+                    else
+                    {
+                        // Handle error response
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -96,22 +99,23 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
 
             try
             {
-                using var client = new HttpClient();
-
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var response = await client.GetAsync(fullUrl);
-                if (response.IsSuccessStatusCode)
+                using (var client = new HttpClient())
                 {
-                    var json = await response.Content.ReadAsStringAsync();
-                    return json;
-                }
-                else
-                {
-                    // Handle error response
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                    var response = await client.GetAsync(fullUrl);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        return json;
+                    }
+                    else
+                    {
+                        // Handle error response
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        throw new Exception($"Error: {response.StatusCode}, Content: {errorContent}");
+                    }
                 }
             }
             catch (Exception ex)
