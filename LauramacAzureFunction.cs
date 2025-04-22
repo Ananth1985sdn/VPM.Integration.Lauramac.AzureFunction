@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
+using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response;
 
 namespace VPM.Integration.Lauramac.AzureFunction
 {
@@ -227,75 +228,6 @@ namespace VPM.Integration.Lauramac.AzureFunction
                 Console.WriteLine($"PDF downloaded successfully to: {filePath}");
             }
         }
-
-        private async Task<string> GetDocumentURL(string loanId, string attachmentId, string accessToken)
-        {
-            var encompassBaseURL = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
-            var documentURL = Environment.GetEnvironmentVariable("EncompassGetDocumentURL");
-
-            if (string.IsNullOrWhiteSpace(encompassBaseURL) || string.IsNullOrWhiteSpace(documentURL))
-            {
-                throw new InvalidOperationException("Missing environment variables for Encompass API base URL or document URL endpoint.");
-            }
-
-            var documentURLEndpoint = documentURL.Replace("{loanId}", loanId);
-            var requestUrl = $"{encompassBaseURL.TrimEnd('/')}{documentURLEndpoint}";
-
-            using (var httpClient = new HttpClient())
-            {
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-                var payload = new
-                {
-                    attachments = new[] { attachmentId }
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(requestUrl, content).ConfigureAwait(false);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new Exception($"Failed to get document URL. Status: {response.StatusCode}, Response: {error}");
-                }
-
-                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var responseObject = JsonConvert.DeserializeObject<DownloadUrlResponse>(json);
-
-                if (responseObject?.Attachments == null || responseObject.Attachments.Count == 0)
-                {
-                    throw new Exception("No attachments found in the response.");
-                }
-
-                var attachment = responseObject.Attachments[0];
-                var pages = attachment?.Pages;
-
-                if (pages != null && pages.Count > 0)
-                {
-                    if (pages.Count == 1)
-                    {
-                        return pages[0].Url;
-                    }
-                    else
-                    {
-                        if (attachment.originalUrls != null && attachment.originalUrls.Count > 0)
-                        {
-                            return attachment.originalUrls[0];
-                        }
-                        else if (attachment.Pages != null && attachment.Pages.Count > 0)
-                        {
-                            return attachment.Pages[0].Url;
-                        }
-                        else
-                        {
-                            throw new Exception("No valid document URL found.");
-                        }
-                    }
-                }
-
-                throw new Exception("No pages found for the attachment.");
-            }
-        }
+        
     }
 }

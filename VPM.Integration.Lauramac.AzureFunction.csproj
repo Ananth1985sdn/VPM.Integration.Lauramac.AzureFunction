@@ -35,6 +35,5 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Helper\" />
-    <Folder Include="Models\Encompass\Response\" />
   </ItemGroup>
 </Project>

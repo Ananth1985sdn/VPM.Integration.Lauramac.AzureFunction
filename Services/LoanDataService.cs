@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
-using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
+using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response;
 
 namespace VPM.Integration.Lauramac.AzureFunction.Services
 {
@@ -144,14 +144,14 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var responseObject = JsonConvert.DeserializeObject<DownloadUrlResponse>(json);
+                var responseObject = JsonConvert.DeserializeObject<AttachmentDownloadUrlResponse>(json);
 
-                if (responseObject?.Attachments == null || responseObject.Attachments.Count == 0)
+                if (responseObject?.AttachmentUrls == null || responseObject.AttachmentUrls.Count == 0)
                 {
                     throw new Exception("No attachments found in the response.");
                 }
 
-                var attachment = responseObject.Attachments[0];
+                var attachment = responseObject.AttachmentUrls[0];
                 var pages = attachment?.Pages;
 
                 if (pages != null && pages.Count > 0)

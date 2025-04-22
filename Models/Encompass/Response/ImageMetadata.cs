@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VPM.Integration.Lauramac.AzureFunction.Models.Encompass
+namespace VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response
 {
-    public class PageImage
+    public class ImageMetadata
     {
         public int Height { get; set; }
         public int Width { get; set; }
