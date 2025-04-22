@@ -83,48 +83,50 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var result = await _loanDataService.GetLoanData(requestUrl, content,token);
             _logger.LogInformation("Loan Pipeline Response: " + result);
 
-            try
+            if (result != null)
             {
-                var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
-                _logger.LogInformation($"Number of Loans: {loans.Count}");
-
-                var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
-                var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
-
-                foreach (var loan in loans)
+                try
                 {
-                    _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
+                    var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
+                    _logger.LogInformation($"Number of Loans: {loans.Count}");
 
-                    var documentsResponse = await _loanDataService.GetAllLoanDocuments(token, loan.LoanId);
+                    var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
+                    var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
 
-                    _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
-
-                    var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
-
-                    foreach (var attachment in attachments)
+                    foreach (var loan in loans)
                     {
-                        if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
-                            continue;
-                        else
+                        _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
+
+                        var documentsResponse = await _loanDataService.GetAllLoanDocuments(token, loan.LoanId);
+
+                        _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
+
+                        var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
+
+                        foreach (var attachment in attachments)
                         {
-                            _logger.LogInformation($"Attachment Title: {attachment.Title}, CreatedBy: {attachment.AssignedTo?.EntityName}, File Size: {attachment.FileSize}");
-                            //loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
-                            //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
-                            var url = await _loanDataService.GetDocumentUrl(loan.LoanId, attachment.Id, token); 
-                            if (url != null)
-                                await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
-                            break;
+                            if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
+                                continue;
+                            else
+                            {
+                                _logger.LogInformation($"Attachment Title: {attachment.Title}, CreatedBy: {attachment.AssignedTo?.EntityName}, File Size: {attachment.FileSize}");
+                                //loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
+                                //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
+                                var url = await _loanDataService.GetDocumentUrl(loan.LoanId, attachment.Id, token);
+                                if (url != null)
+                                    await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
+                                break;
+                            }
                         }
+
                     }
 
                 }
-
+                catch (JsonException ex)
+                {
+                    _logger.LogError($"Error deserializing response: {ex.Message}");
+                }
             }
-            catch (JsonException ex)
-            {
-                _logger.LogError($"Error deserializing response: {ex.Message}");
-            }
-
         }
 
         private static global::System.Object RequestBody()
