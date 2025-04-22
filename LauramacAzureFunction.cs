@@ -72,7 +72,6 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var encompassBaseURL = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
             var pipeLineUrl = Environment.GetEnvironmentVariable("EncompassLoanPipelineURL");
             var requestUrl = $"{encompassBaseURL.TrimEnd('/')}{pipeLineUrl}";
-
             var documentPackage = Environment.GetEnvironmentVariable("DocumentPackageName");
 
             var requestBody = RequestBody();
@@ -80,14 +79,14 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var json = JsonConvert.SerializeObject(requestBody);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             
-            var result = await _loanDataService.GetLoanData(requestUrl, content,token);
-            _logger.LogInformation("Loan Pipeline Response: " + result);
+            var response = await _loanDataService.GetLoanData(requestUrl, content,token);
+            _logger.LogInformation("Loan Pipeline Response: " + response);
 
-            if (result != null)
+            if (response != null)
             {
                 try
                 {
-                    var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
+                    var loans = JsonConvert.DeserializeObject<List<Loan>>(response);
                     _logger.LogInformation($"Number of Loans: {loans.Count}");
 
                     var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
