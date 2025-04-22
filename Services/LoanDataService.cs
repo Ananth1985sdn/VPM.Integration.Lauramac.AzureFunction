@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using VPM.Integration.Lauramac.AzureFunction.Interface.ILoanDataService;
+using VPM.Integration.Lauramac.AzureFunction.Interface;
 
-namespace VPM.Integration.Lauramac.AzureFunction.Services.LoanDataService
+namespace VPM.Integration.Lauramac.AzureFunction.Services
 {
     public class LoanDataService : ILoanDataService
     {

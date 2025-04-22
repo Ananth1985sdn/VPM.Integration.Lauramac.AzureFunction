@@ -4,9 +4,9 @@ using System.Text;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using VPM.Integration.Lauramac.AzureFunction.Interface.ILoanDataService;
+using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
-using VPM.Integration.Lauramac.AzureFunction.Services.LoanDataService;
+using VPM.Integration.Lauramac.AzureFunction.Services;
 
 namespace VPM.Integration.Lauramac.AzureFunction
 {
