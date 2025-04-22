@@ -9,6 +9,8 @@ namespace VPM.Integration.Lauramac.AzureFunction.Interface
     public interface ILoanDataService
     {
        public Task<string> GetToken(string username, string password, string clientId, string clientSecret, string fullUrl);
-       public Task<string> GetLoanData(string requestUrl, StringContent content);
+       public Task<string> GetLoanData(string requestUrl, StringContent content, string accessToken);
+       public Task<string> GetAllLoanDocuments(string requestUrl);
+       public Task<string> GetDocumentUrl(string loanId,string attachmentId,string accessToken);
     }
 }
