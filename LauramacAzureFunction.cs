@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
+using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
 using VPM.Integration.Lauramac.AzureFunction.Services;
 
 namespace VPM.Integration.Lauramac.AzureFunction
@@ -54,10 +55,12 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var encompassBaseURL = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
             var tokenUrl = Environment.GetEnvironmentVariable("EncompassTokenUrl");
 
-            var clientId = Environment.GetEnvironmentVariable("EncompassClientId");
-            var clientSecret = Environment.GetEnvironmentVariable("EncompassClientSecret");
-            var username = Environment.GetEnvironmentVariable("EncompassUsername");
-            var password = Environment.GetEnvironmentVariable("EncompassPassword");
+            var credentials = new EncompassCredentials();
+            var clientId = credentials.ClientId;
+            var clientSecret = credentials.ClientSecret;
+            var username = credentials.Username;
+            var password = credentials.Password;
+
             var fullUrl = $"{encompassBaseURL.TrimEnd('/')}{tokenUrl}";
 
             string token = await _loanDataService.GetToken(username, password, clientId, clientSecret, fullUrl);
