@@ -25,7 +25,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
         public async Task Run([TimerTrigger("0 */1 * * * *")] TimerInfo myTimer)
         {
             try
-            {   
+            {
                 // Your function logic here
                 _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
                 string token = await GetEncompassAccessTokenAsync(_logger);
@@ -46,7 +46,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
             catch (Exception ex)
             {
                 _logger.LogError($"An error occurred: {ex.Message}");
-            }            
+            }
         }
 
         public async Task<string> GetEncompassAccessTokenAsync(ILogger log)
@@ -63,7 +63,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var fullUrl = $"{encompassBaseURL.TrimEnd('/')}{tokenUrl}";
 
             string token = await _loanDataService.GetToken(username, password, clientId, clientSecret, fullUrl);
-            return token;     
+            return token;
         }
 
         private async Task CallLoanPipelineApiAsync(string token)
@@ -74,6 +74,78 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
             var documentPackage = Environment.GetEnvironmentVariable("DocumentPackageName");
 
+            var requestBody = RequestBody();
+
+            var json = JsonConvert.SerializeObject(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var result = await _loanDataService.GetLoanData(requestUrl, content); 
+            _logger.LogInformation("Loan Pipeline Response: " + result);
+
+            try
+            {
+                var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
+                _logger.LogInformation($"Number of Loans: {loans.Count}");
+
+                var documentsHttpClient = new HttpClient();
+                documentsHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                documentsHttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
+                var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
+
+                foreach (var loan in loans)
+                {
+                    _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
+
+                    var endpoint = endpointTemplate.Replace("{loanId}", loan.LoanId);
+                    var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+
+                    var documentsResponse = await httpClient.GetAsync(fullUrl);
+
+                    if (documentsResponse.IsSuccessStatusCode)
+                    {
+                        var documentsResult = await documentsResponse.Content.ReadAsStringAsync();
+                        _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResult}");
+
+                        var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResult);
+
+                        foreach (var attachment in attachments)
+                        {
+                            if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
+                                continue;
+                            else
+                            {
+                                _logger.LogInformation($"Attachment Title: {attachment.Title}, CreatedBy: {attachment.AssignedTo?.EntityName}, File Size: {attachment.FileSize}");
+                                //loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
+                                //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
+                                var url = await GetDocumentURL(loan.LoanId, attachment.Id, token);
+                                if (url != null)
+                                    await DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var error = await response.Content.ReadAsStringAsync();
+                        _logger.LogError($"Failed to fetch attachments for Loan {loan.Fields.LoanNumber}: {error}");
+                    }
+                }
+
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError($"Error deserializing response: {ex.Message}");
+            }
+
+        }
+
+        private static global::System.Object RequestBody()
+        {
             var filterTerms = new List<FilterTerm>
             {
                 new FilterTerm {
@@ -127,82 +199,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                     }
                 }
             };
-
-            var json = JsonConvert.SerializeObject(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var response = await httpClient.PostAsync(requestUrl, content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("Loan Pipeline Response: " + result);
-
-                try
-                {
-                    var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
-                    _logger.LogInformation($"Number of Loans: {loans.Count}");
-
-                    var documentsHttpClient = new HttpClient();
-                    documentsHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    documentsHttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                    var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
-                    var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
-
-                    foreach (var loan in loans)
-                    {
-                        _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
-
-                        var endpoint = endpointTemplate.Replace("{loanId}", loan.LoanId);
-                        var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
-
-                        var documentsResponse = await httpClient.GetAsync(fullUrl);
-
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var documentsResult = await documentsResponse.Content.ReadAsStringAsync();
-                            _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResult}");
-
-                            var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResult);
-
-                            foreach (var attachment in attachments)
-                            {
-                                if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
-                                    continue;
-                                else
-                                {
-                                    _logger.LogInformation($"Attachment Title: {attachment.Title}, CreatedBy: {attachment.AssignedTo?.EntityName}, File Size: {attachment.FileSize}");
-                                    //loan.LoanId = "66b6fc88-f675-4cdd-b78a-214453cde1e9";
-                                    //attachment.Id = "eb00e165-4ce6-4580-a39a-555067afdaca";
-                                    var url = await GetDocumentURL(loan.LoanId, attachment.Id, token);
-                                    if (url != null)
-                                        await DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
-                                    break;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var error = await response.Content.ReadAsStringAsync();
-                            _logger.LogError($"Failed to fetch attachments for Loan {loan.Fields.LoanNumber}: {error}");
-                        }
-                    }
-
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError($"Error deserializing response: {ex.Message}");
-                }
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError($"Loan Pipeline API failed with {response.StatusCode}: {error}");
-            }
+            return requestBody;
         }
 
         private async Task DownloadDocument(string loanId, string lastName, string documentURL)
