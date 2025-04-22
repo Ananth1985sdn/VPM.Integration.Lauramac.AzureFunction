@@ -1,8 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +15,11 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
 {
     public class LoanDataService : ILoanDataService
     {
+        private readonly ILogger<LoanDataService> _logger;
+        public LoanDataService(ILogger<LoanDataService> logger)
+        {
+            _logger = logger;
+        }
         public async Task<string> GetLoanData(string requestUrl, StringContent content,string accessToken)
         {
             try
@@ -34,7 +41,8 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             }
             catch (Exception ex)
             {
-                throw new NotImplementedException();
+                _logger.LogError(ex, "Error while getting loan data from {Url}", requestUrl);
+                return null;
             }
         }
 
@@ -73,24 +81,25 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             catch (Exception ex)
             {
                 // Handle exception
-                throw new NotImplementedException();
+                _logger.LogError(ex, "Error while getting token {Url}", fullUrl);
+                return null;
             }
         }
 
         public async Task<string> GetAllLoanDocuments(string accessToken, string loanId)
         {
+            var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
+            var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
+
+            var endpoint = endpointTemplate.Replace("{loanId}", loanId);
+            var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+
             try
             {
                 using var client = new HttpClient();
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
-                var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
-
-                var endpoint = endpointTemplate.Replace("{loanId}", loanId);
-                var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
 
                 var response = await client.GetAsync(fullUrl);
                 if (response.IsSuccessStatusCode)
@@ -107,12 +116,14 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             }
             catch (Exception ex)
             {
-                throw new NotImplementedException();
+                _logger.LogError(ex, "Error while getting loan data from {Url}", fullUrl);
+                return null;
             }
         }
 
         public async Task<string> GetDocumentUrl(string loanId, string attachmentId, string accessToken)
         {
+            string documentDownloadUrl = string.Empty;
             var encompassBaseURL = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
             var documentURL = Environment.GetEnvironmentVariable("EncompassGetDocumentURL");
 
@@ -124,104 +135,114 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             var documentURLEndpoint = documentURL.Replace("{loanId}", loanId);
             var requestUrl = $"{encompassBaseURL.TrimEnd('/')}{documentURLEndpoint}";
 
-            using (var httpClient = new HttpClient())
+            try
             {
-                httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-                var payload = new
+                using (var httpClient = new HttpClient())
                 {
-                    attachments = new[] { attachmentId }
-                };
+                    httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-                var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync(requestUrl, content).ConfigureAwait(false);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new Exception($"Failed to get document URL. Status: {response.StatusCode}, Response: {error}");
-                }
-
-                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var responseObject = JsonConvert.DeserializeObject<AttachmentDownloadUrlResponse>(json);
-
-                if (responseObject?.AttachmentUrls == null || responseObject.AttachmentUrls.Count == 0)
-                {
-                    throw new Exception("No attachments found in the response.");
-                }
-
-                var attachment = responseObject.AttachmentUrls[0];
-                var pages = attachment?.Pages;
-
-                if (pages != null && pages.Count > 0)
-                {
-                    if (pages.Count == 1)
+                    var payload = new
                     {
-                        return pages[0].Url;
+                        attachments = new[] { attachmentId }
+                    };
+
+                    var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+                    var response = await httpClient.PostAsync(requestUrl, content).ConfigureAwait(false);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var error = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        throw new Exception($"Failed to get document URL. Status: {response.StatusCode}, Response: {error}");
                     }
-                    else
+
+                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var responseObject = JsonConvert.DeserializeObject<AttachmentDownloadUrlResponse>(json);
+
+                    if (responseObject?.AttachmentUrls == null || responseObject.AttachmentUrls.Count == 0)
                     {
-                        if (attachment.originalUrls != null && attachment.originalUrls.Count > 0)
+                        throw new Exception("No attachments found in the response.");
+                    }
+
+                    var attachment = responseObject.AttachmentUrls[0];
+                    var pages = attachment?.Pages;
+
+                    if (pages != null && pages.Count > 0)
+                    {
+                        if (pages.Count == 1)
                         {
-                            return attachment.originalUrls[0];
-                        }
-                        else if (attachment.Pages != null && attachment.Pages.Count > 0)
-                        {
-                            return attachment.Pages[0].Url;
+                            documentDownloadUrl= pages[0].Url;
                         }
                         else
                         {
-                            throw new Exception("No valid document URL found.");
+                            if (attachment.originalUrls != null && attachment.originalUrls.Count > 0)
+                            {
+                                documentDownloadUrl = attachment.originalUrls[0];
+                            }
+                            else if (attachment.Pages != null && attachment.Pages.Count > 0)
+                            {
+                                documentDownloadUrl = attachment.Pages[0].Url;
+                            }
+                           
                         }
                     }
+                   
                 }
-
-                throw new Exception("No pages found for the attachment.");
             }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Error while getting document download url from {Url}", requestUrl);
+                return null; 
+            }
+            return documentDownloadUrl;
         }
 
         public async Task DownloadDocument(string loanId, string lastName, string documentURL)
         {
 
-            if (string.IsNullOrWhiteSpace(documentURL))
+            try
             {
-                throw new ArgumentException("Document URL cannot be null or empty.", nameof(documentURL));
+                if (string.IsNullOrWhiteSpace(documentURL))
+                {
+                    throw new ArgumentException("Document URL cannot be null or empty.", nameof(documentURL));
+                }
+
+                using (var httpClient = new HttpClient())
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, documentURL);
+                    var response = await httpClient.SendAsync(request);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        throw new Exception($"Failed to download document. Status: {response.StatusCode}, Response: {errorContent}");
+                    }
+                    var contentType = response.Content.Headers.ContentType?.MediaType;
+                    _logger.LogInformation($"Content-Type: {contentType}");
+                    var pdfBytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+
+                    var fileName = loanId + "_" + lastName + "_shippingfiles.pdf";
+
+                    #if DEBUG
+                    var downloadsPath = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
+                    #else
+                     var downloadsPath = Path.Combine(Path.GetTempPath(), "Downloads");
+                    #endif
+
+                    if (!Directory.Exists(downloadsPath))
+                    {
+                        Directory.CreateDirectory(downloadsPath);
+                    }
+
+                    var filePath = Path.Combine(downloadsPath, fileName);
+                    await File.WriteAllBytesAsync(filePath, pdfBytes).ConfigureAwait(false);
+                    Console.WriteLine($"PDF downloaded successfully to: {filePath}");
+                }
+
             }
-
-            using (var httpClient = new HttpClient())
+            catch (Exception ex)
             {
-
-                var request = new HttpRequestMessage(HttpMethod.Get, documentURL);
-                var response = await httpClient.SendAsync(request);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new Exception($"Failed to download document. Status: {response.StatusCode}, Response: {errorContent}");
-                }
-                var contentType = response.Content.Headers.ContentType?.MediaType;
-                //_logger.LogInformation($"Content-Type: {contentType}");
-                var pdfBytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-
-                var fileName = loanId + "_" + lastName + "_shippingfiles.pdf";
-
-                #if DEBUG
-                var downloadsPath = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
-                #else
-                var downloadsPath = Path.Combine(Path.GetTempPath(), "Downloads");
-                #endif
-
-                if (!Directory.Exists(downloadsPath))
-                {
-                    Directory.CreateDirectory(downloadsPath);
-                }
-
-                var filePath = Path.Combine(downloadsPath, fileName);
-
-                await File.WriteAllBytesAsync(filePath, pdfBytes).ConfigureAwait(false);
-
-                Console.WriteLine($"PDF downloaded successfully to: {filePath}");
+                _logger.LogError(ex, "Error while getting download pdf from {Url}", documentURL);
+                return;
             }
         }
     }
