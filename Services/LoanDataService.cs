@@ -180,5 +180,49 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
                 throw new Exception("No pages found for the attachment.");
             }
         }
+
+        public async Task DownloadDocument(string loanId, string lastName, string documentURL)
+        {
+
+            if (string.IsNullOrWhiteSpace(documentURL))
+            {
+                throw new ArgumentException("Document URL cannot be null or empty.", nameof(documentURL));
+            }
+
+            using (var httpClient = new HttpClient())
+            {
+
+                var request = new HttpRequestMessage(HttpMethod.Get, documentURL);
+                var response = await httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new Exception($"Failed to download document. Status: {response.StatusCode}, Response: {errorContent}");
+                }
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                //_logger.LogInformation($"Content-Type: {contentType}");
+                var pdfBytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+
+                var fileName = loanId + "_" + lastName + "_shippingfiles.pdf";
+
+                #if DEBUG
+                var downloadsPath = Path.Combine(Directory.GetCurrentDirectory(), "Downloads");
+                #else
+                var downloadsPath = Path.Combine(Path.GetTempPath(), "Downloads");
+                #endif
+
+                if (!Directory.Exists(downloadsPath))
+                {
+                    Directory.CreateDirectory(downloadsPath);
+                }
+
+                var filePath = Path.Combine(downloadsPath, fileName);
+
+                await File.WriteAllBytesAsync(filePath, pdfBytes).ConfigureAwait(false);
+
+                Console.WriteLine($"PDF downloaded successfully to: {filePath}");
+            }
+        }
     }
 }
