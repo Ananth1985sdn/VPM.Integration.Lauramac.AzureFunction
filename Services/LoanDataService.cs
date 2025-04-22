@@ -77,12 +77,22 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
             }
         }
 
-        public async Task<string> GetAllLoanDocuments(string requestUrl)
+        public async Task<string> GetAllLoanDocuments(string accessToken, string loanId)
         {
             try
             {
                 using var client = new HttpClient();
-                var response = await client.GetAsync(requestUrl);
+
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
+                var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
+
+                var endpoint = endpointTemplate.Replace("{loanId}", loanId);
+                var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
+
+                var response = await client.GetAsync(fullUrl);
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync();

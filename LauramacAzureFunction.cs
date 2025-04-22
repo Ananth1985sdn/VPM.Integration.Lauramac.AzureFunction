@@ -87,10 +87,6 @@ namespace VPM.Integration.Lauramac.AzureFunction
                 var loans = JsonConvert.DeserializeObject<List<Loan>>(result);
                 _logger.LogInformation($"Number of Loans: {loans.Count}");
 
-                var documentsHttpClient = new HttpClient();
-                documentsHttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                documentsHttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
                 var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
                 var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
 
@@ -98,10 +94,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                 {
                     _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
 
-                    var endpoint = endpointTemplate.Replace("{loanId}", loan.LoanId);
-                    var fullUrl = $"{baseUrl.TrimEnd('/')}/{endpoint.TrimStart('/')}";
-
-                    var documentsResponse = await _loanDataService.GetAllLoanDocuments(fullUrl);
+                    var documentsResponse = await _loanDataService.GetAllLoanDocuments(token, loan.LoanId);
 
                     _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
 
