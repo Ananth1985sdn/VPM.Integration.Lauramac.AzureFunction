@@ -1,15 +1,14 @@
-using System;
-using System.Net.Http.Headers;
 using System.Text;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
-using VPM.Integration.Lauramac.AzureFunction.Models.Encompass;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response;
 using VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request;
+
+using EncompassLoan = VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response.Loan;
+using LauramacLoan = VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request.Loan;
 
 namespace VPM.Integration.Lauramac.AzureFunction
 {
@@ -88,14 +87,14 @@ namespace VPM.Integration.Lauramac.AzureFunction
             {
                 try
                 {
-                    var loans = JsonConvert.DeserializeObject<List<Models.Encompass.Loan>>(response);
+                    var loans = JsonConvert.DeserializeObject<List<EncompassLoan>>(response);
                     _logger.LogInformation($"Number of Loans: {loans.Count}");
 
                     var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
                     var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
                    
                     LoanRequest loanRequest = new LoanRequest();
-                    loanRequest.Loans = new List<Models.Lauramac.Request.Loan>();
+                    loanRequest.Loans = new List<LauramacLoan>();
                     string sellerName = string.Empty;
 
                     foreach (var loan in loans)
