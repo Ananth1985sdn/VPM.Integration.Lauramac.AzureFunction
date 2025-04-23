@@ -83,7 +83,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
             var response = await _loanDataService.GetLoanData(requestUrl, content,token);
             _logger.LogInformation("Loan Pipeline Response: " + response);
 
-            if (response != null)
+            if (response != null && response != "[]")
             {
                 try
                 {
@@ -182,6 +182,10 @@ namespace VPM.Integration.Lauramac.AzureFunction
                 {
                     _logger.LogError($"Error deserializing response: {ex.Message}");
                 }
+            }
+            else
+            {
+                _logger.LogInformation("No loans match the given criteria.");
             }
         }
 
