@@ -16,7 +16,6 @@ namespace VPM.Integration.Lauramac.AzureFunction
     {
         private readonly ILogger _logger;
         private readonly ILoanDataService _loanDataService;
-        private List<Models.Lauramac.Request.Loan> _loanList = new List<Models.Lauramac.Request.Loan>();
 
         public LauramacAzureFunction(ILoggerFactory loggerFactory, ILoanDataService loanDataService)
         {
@@ -104,6 +103,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
                         var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
                         LoanRequest loanRequest = new LoanRequest();
+                        loanRequest.Loans = new List<Models.Lauramac.Request.Loan>();
                         foreach (var attachment in attachments)
                         {
                             if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
