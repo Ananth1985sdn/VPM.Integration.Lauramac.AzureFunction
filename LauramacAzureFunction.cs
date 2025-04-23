@@ -186,7 +186,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
             }
         }
 
-        private static global::System.Object RequestBody()
+        private static Object RequestBody()
         {
             var filterTerms = new List<FilterTerm>
             {
