@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http.Headers;
 using System.Text;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -92,9 +93,14 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
                     var baseUrl = Environment.GetEnvironmentVariable("EncompassApiBaseURL");
                     var endpointTemplate = Environment.GetEnvironmentVariable("EncompassGetDocumentsURL");
+                   
+                    LoanRequest loanRequest = new LoanRequest();
+                    loanRequest.Loans = new List<Models.Lauramac.Request.Loan>();
+                    string sellerName = string.Empty;
 
                     foreach (var loan in loans)
                     {
+                         sellerName = string.IsNullOrEmpty(sellerName) ? loan.Fields.FieldsCXNAME_DDPROVIDER : sellerName;
                         _logger.LogInformation($"Loan ID: {loan.LoanId}, Loan Number: {loan.Fields.LoanNumber}, Amount: {loan.Fields.LoanAmount}");
 
                         var documentsResponse = await _loanDataService.GetAllLoanDocuments(token, loan.LoanId);
@@ -102,8 +108,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                         _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
 
                         var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
-                        LoanRequest loanRequest = new LoanRequest();
-                        loanRequest.Loans = new List<Models.Lauramac.Request.Loan>();
+                       
                         foreach (var attachment in attachments)
                         {
                             if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
@@ -117,46 +122,50 @@ namespace VPM.Integration.Lauramac.AzureFunction
                                 if (url != null)
                                 {
                                     var documentDownload = await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
-                                    if(documentDownload)
+                                    if (documentDownload)
                                     {
-                                        Models.Lauramac.Request.Loan lauramacLoan  = new Models.Lauramac.Request.Loan();
-                                        lauramacLoan.Zip = loan.Fields.Field15;
-                                        lauramacLoan.BorrowerFirstName = loan.Fields.Field4000;
-                                        lauramacLoan.Address = loan.Fields.Address1;
-                                        lauramacLoan.LoanNumber = loan.Fields.LoanNumber;
-                                        lauramacLoan.Fico = loan.Fields.CreditScore;
-                                        lauramacLoan.LoanID = loan.LoanId;
-                                        lauramacLoan.PropType = loan.Fields.Field1401;
-                                        lauramacLoan.LoanTerm = loan.Fields.Field325;
-                                        lauramacLoan.AppraisedValue = loan.Fields.Field356;
-                                        //lauramacLoan.EscrowFlag = "";
-                                        lauramacLoan.Occupancy = loan.Fields.OccupancyStatus;
-                                        lauramacLoan.LoanAmount = loan.Fields.LoanAmount;
-                                        lauramacLoan.OriginalCLTV = loan.Fields.Field976;
-                                        lauramacLoan.NoteRate = loan.Fields.Field3;
-                                        lauramacLoan.DocType = loan.Fields.DocType;
-                                        lauramacLoan.PurchasePrice = loan.Fields.FieldsCXPURCHASEPRICE;
-                                        lauramacLoan.Purpose = loan.Fields.Field19;
-                                        lauramacLoan.BorrowerSSN = loan.Fields.Field65;
-                                        lauramacLoan.City  =   loan.Fields.City;
-                                        lauramacLoan.BorrowerLastName = loan.Fields.Field4002;
-                                        lauramacLoan.State = loan.Fields.State;
-                                        lauramacLoan.AmortizationType = loan.Fields.Field608;
-                                        lauramacLoan.OriginalLTV = loan.Fields.LTV;
+                                        var lauramacLoan = new Models.Lauramac.Request.Loan
+                                        {
+                                            LoanID = loan.LoanId,
+                                            LoanNumber = loan.Fields.LoanNumber,
+                                            LoanAmount = loan.Fields.LoanAmount,
+                                            NoteRate = loan.Fields.Field3,
+                                            LoanTerm = loan.Fields.Field325,
+                                            Purpose = loan.Fields.Field19,
+                                            Fico = loan.Fields.CreditScore,
+                                            OriginalLTV = loan.Fields.LTV,
+                                            OriginalCLTV = loan.Fields.Field976,
+                                            AppraisedValue = loan.Fields.Field356,
+                                            PurchasePrice = loan.Fields.FieldsCXPURCHASEPRICE,
+                                            DocType = loan.Fields.DocType,
+                                            AmortizationType = loan.Fields.Field608,
+                                            PropType = loan.Fields.Field1401,
+                                            Occupancy = loan.Fields.OccupancyStatus,
+
+                                            // Borrower Info
+                                            BorrowerFirstName = loan.Fields.Field4000,
+                                            BorrowerLastName = loan.Fields.Field4002,
+                                            BorrowerSSN = loan.Fields.Field65,
+
+                                            // Property Info
+                                            Address = loan.Fields.Address1,
+                                            City = loan.Fields.City,
+                                            State = loan.Fields.State,
+                                            Zip = loan.Fields.Field15
+                                        };
+
                                         loanRequest.Loans.Add(lauramacLoan);
                                         break;
-
                                     }
+
                                 }
                             }
                         }
-                        loanRequest.TransactionIdentifier = "VPM WHSL_2025-02-VPM";
-                        loanRequest.SellerName = loan.Fields.FieldsCXNAME_DDPROVIDER;
-                        loanRequest.OverrideDuplicateLoans = "0";
-                        
 
                     }
-
+                    loanRequest.TransactionIdentifier = "VPM WHSL_2025-02-VPM";
+                    loanRequest.SellerName = sellerName;
+                    loanRequest.OverrideDuplicateLoans = "0";
                 }
                 catch (JsonException ex)
                 {
@@ -203,7 +212,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                     "Loan.Address1", "Loan.City", "Loan.State", "Fields.15", "Fields.1041", "Loan.OccupancyStatus",
                     "Fields.1401", "Fields.CX.VP.DOC.TYPE", "Fields.4000", "Fields.4002", "Fields.CX.CREDITSCORE",
                     "Fields.325", "Fields.3", "Fields.742", "Fields.CX.VP.BUSINESS.PURPOSE", "Fields.1550",
-                    "Fields.675", "Fields.QM.X23", "Fields.QM.X25", "Fields.2278", "Fields.65","Fields.CX.PURCHASEPRICE","Fields.1550","Fields.356"
+                    "Fields.675", "Fields.QM.X23", "Fields.QM.X25", "Fields.2278", "Fields.65","Fields.CX.PURCHASEPRICE","Fields.1550","Fields.356","Fields.CX.NAME_DDPROVIDER"
                 },
                 filter = new
                 {
