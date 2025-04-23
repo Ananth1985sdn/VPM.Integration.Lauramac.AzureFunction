@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Google.Protobuf.WellKnownTypes;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -86,5 +87,14 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response
 
         [JsonProperty("Fields.2278")]
         public string Field2278 { get; set; }
+
+        [JsonProperty("Fields.356")]
+        public string Field356 { get; set; }
+        [JsonProperty("Fields.65")]
+        public string Field65 { get; set; }
+        [JsonProperty("Fields.CX.PURCHASEPRICE")]
+        public string FieldsCXPURCHASEPRICE { get; set; }
+        [JsonProperty("Fields.CX.NAME_DDPROVIDER")]
+        public string FieldsCXNAME_DDPROVIDER { get; set; }
     }
 }

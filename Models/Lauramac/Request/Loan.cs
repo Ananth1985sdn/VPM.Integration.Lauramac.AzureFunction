@@ -25,7 +25,7 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request
         public string LoanNumber { get; set; }
 
         [JsonProperty("FICO")]
-        public int Fico { get; set; }
+        public string Fico { get; set; }
 
         [JsonProperty("LoanID")]
         public string LoanID { get; set; }
@@ -34,10 +34,10 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request
         public string PropType { get; set; }
 
         [JsonProperty("Loan Term")]
-        public int LoanTerm { get; set; }
+        public string LoanTerm { get; set; }
 
         [JsonProperty("Appraised Value")]
-        public decimal AppraisedValue { get; set; }
+        public string AppraisedValue { get; set; }
 
         [JsonProperty("Escrow Flag")]
         public string EscrowFlag { get; set; }
@@ -46,22 +46,22 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request
         public string Occupancy { get; set; }
 
         [JsonProperty("Loan Amount")]
-        public decimal LoanAmount { get; set; }
+        public string LoanAmount { get; set; }
 
         [JsonProperty("Original CLTV")]
-        public decimal OriginalCLTV { get; set; }
+        public string OriginalCLTV { get; set; }
 
         [JsonProperty("Note Rate")]
-        public decimal NoteRate { get; set; }
+        public string NoteRate { get; set; }
 
         [JsonProperty("Doc Type")]
         public string DocType { get; set; }
 
         [JsonProperty("Purchase Price")]
-        public decimal PurchasePrice { get; set; }
+        public string PurchasePrice { get; set; }
 
         [JsonProperty("Lien Position")]
-        public int LienPosition { get; set; }
+        public string LienPosition { get; set; }
 
         [JsonProperty("Purpose")]
         public string Purpose { get; set; }
@@ -82,6 +82,6 @@ namespace VPM.Integration.Lauramac.AzureFunction.Models.Lauramac.Request
         public string AmortizationType { get; set; }
 
         [JsonProperty("Original LTV")]
-        public decimal OriginalLTV { get; set; }
+        public string OriginalLTV { get; set; }
     }
 }

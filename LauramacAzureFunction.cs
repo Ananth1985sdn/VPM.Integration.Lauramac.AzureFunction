@@ -16,13 +16,12 @@ namespace VPM.Integration.Lauramac.AzureFunction
     {
         private readonly ILogger _logger;
         private readonly ILoanDataService _loanDataService;
-        private List<Models.Lauramac.Request.Loan> _loanList;
+        private List<Models.Lauramac.Request.Loan> _loanList = new List<Models.Lauramac.Request.Loan>();
 
-        public LauramacAzureFunction(ILoggerFactory loggerFactory, ILoanDataService loanDataService, List<Models.Lauramac.Request.Loan> loans)
+        public LauramacAzureFunction(ILoggerFactory loggerFactory, ILoanDataService loanDataService)
         {
             _logger = loggerFactory.CreateLogger<LauramacAzureFunction>();
             _loanDataService = loanDataService;
-            _loanList = loans;
         }
 
         [Function("LauramacAzureFunction")]
@@ -104,7 +103,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                         _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
 
                         var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
-
+                        LoanRequest loanRequest = new LoanRequest();
                         foreach (var attachment in attachments)
                         {
                             if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
@@ -120,13 +119,41 @@ namespace VPM.Integration.Lauramac.AzureFunction
                                     var documentDownload = await _loanDataService.DownloadDocument(loan.LoanId, loan.Fields.Field4002, url);
                                     if(documentDownload)
                                     {
-                                        Models.Lauramac.Request.Loan loan1  = new Models.Lauramac.Request.Loan();
-                                        _loanList.Add(loan1);
+                                        Models.Lauramac.Request.Loan lauramacLoan  = new Models.Lauramac.Request.Loan();
+                                        lauramacLoan.Zip = loan.Fields.Field15;
+                                        lauramacLoan.BorrowerFirstName = loan.Fields.Field4000;
+                                        lauramacLoan.Address = loan.Fields.Address1;
+                                        lauramacLoan.LoanNumber = loan.Fields.LoanNumber;
+                                        lauramacLoan.Fico = loan.Fields.CreditScore;
+                                        lauramacLoan.LoanID = loan.LoanId;
+                                        lauramacLoan.PropType = loan.Fields.Field1401;
+                                        lauramacLoan.LoanTerm = loan.Fields.Field325;
+                                        lauramacLoan.AppraisedValue = loan.Fields.Field356;
+                                        //lauramacLoan.EscrowFlag = "";
+                                        lauramacLoan.Occupancy = loan.Fields.OccupancyStatus;
+                                        lauramacLoan.LoanAmount = loan.Fields.LoanAmount;
+                                        lauramacLoan.OriginalCLTV = loan.Fields.Field976;
+                                        lauramacLoan.NoteRate = loan.Fields.Field3;
+                                        lauramacLoan.DocType = loan.Fields.DocType;
+                                        lauramacLoan.PurchasePrice = loan.Fields.FieldsCXPURCHASEPRICE;
+                                        lauramacLoan.Purpose = loan.Fields.Field19;
+                                        lauramacLoan.BorrowerSSN = loan.Fields.Field65;
+                                        lauramacLoan.City  =   loan.Fields.City;
+                                        lauramacLoan.BorrowerLastName = loan.Fields.Field4002;
+                                        lauramacLoan.State = loan.Fields.State;
+                                        lauramacLoan.AmortizationType = loan.Fields.Field608;
+                                        lauramacLoan.OriginalLTV = loan.Fields.LTV;
+                                        loanRequest.Loans.Add(lauramacLoan);
+                                        break;
+
                                     }
-                                    break;
                                 }
                             }
                         }
+                        loanRequest.TransactionIdentifier = "VPM WHSL_2025-02-VPM";
+                        loanRequest.SellerName = loan.Fields.FieldsCXNAME_DDPROVIDER;
+                        loanRequest.OverrideDuplicateLoans = "0";
+                        
 
                     }
 
@@ -176,7 +203,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                     "Loan.Address1", "Loan.City", "Loan.State", "Fields.15", "Fields.1041", "Loan.OccupancyStatus",
                     "Fields.1401", "Fields.CX.VP.DOC.TYPE", "Fields.4000", "Fields.4002", "Fields.CX.CREDITSCORE",
                     "Fields.325", "Fields.3", "Fields.742", "Fields.CX.VP.BUSINESS.PURPOSE", "Fields.1550",
-                    "Fields.675", "Fields.QM.X23", "Fields.QM.X25", "Fields.2278"
+                    "Fields.675", "Fields.QM.X23", "Fields.QM.X25", "Fields.2278", "Fields.65","Fields.CX.PURCHASEPRICE","Fields.1550","Fields.356"
                 },
                 filter = new
                 {

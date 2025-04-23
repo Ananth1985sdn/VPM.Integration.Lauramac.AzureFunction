@@ -229,7 +229,7 @@ namespace VPM.Integration.Lauramac.AzureFunction.Services
                     #if DEBUG
                     var downloadsPath = Path.Combine("D:/local/", "temp");
                     #else
-                     var downloadsPath = Path.Combine(Path.GetTempPath(), "Downloads");
+                     var downloadsPath = Path.Combine("D:/local/", "temp");
                     #endif
 
                     if (!Directory.Exists(downloadsPath))
