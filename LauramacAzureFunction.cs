@@ -107,9 +107,21 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
                         _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
 
-                        var attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse);
+                        List<Attachment> attachments = new();
+
+                        if (!string.IsNullOrWhiteSpace(documentsResponse))
+                        {
+                            try
+                            {
+                                attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse) ?? new List<Attachment>();
+                            }
+                            catch (JsonException ex)
+                            {
+                                _logger.LogError($"Error deserializing response: {ex.Message}");
+                            }
+                        }
                        
-                        foreach (var attachment in attachments)
+                        foreach (var attachment in attachments ?? Enumerable.Empty<Attachment>())
                         {
                             if (attachment.AssignedTo?.EntityName != documentPackage || (attachment.FileSize <= 0 || attachment.Type != "Image"))
                                 continue;
