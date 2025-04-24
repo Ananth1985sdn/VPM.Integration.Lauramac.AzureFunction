@@ -114,6 +114,16 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
                         var documentsResponse = await _loanDataService.GetAllLoanDocuments(token, loan.LoanId);
 
+                        try
+                        {
+                            var parsedJson = JToken.Parse(documentsResponse);
+                        }
+                        catch (Newtonsoft.Json.JsonReaderException ex)
+                        {
+                            _logger.LogInformation("Invalid JSON in Loan Documents Response: {Response}. Error: {ErrorMessage}",documentsResponse, ex.Message);
+                            return;
+                        }
+
                         _logger.LogInformation($"Attachments for Loan {loan.Fields.LoanNumber}: {documentsResponse}");
 
                         List<Attachment> attachments = new();
