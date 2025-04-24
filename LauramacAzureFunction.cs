@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using VPM.Integration.Lauramac.AzureFunction.Interface;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Request;
 using VPM.Integration.Lauramac.AzureFunction.Models.Encompass.Response;
@@ -87,6 +88,15 @@ namespace VPM.Integration.Lauramac.AzureFunction
             {
                 try
                 {
+                    var parsedJson = JToken.Parse(response);
+                }
+                catch (Newtonsoft.Json.JsonReaderException ex)
+                {
+                    _logger.LogInformation("Invalid JSON in Loan Pipeline Response: {Response}. Error: {ErrorMessage}", response, ex.Message);
+                    return;
+                }
+                try
+                {
                     var loans = JsonConvert.DeserializeObject<List<EncompassLoan>>(response);
                     _logger.LogInformation($"Number of Loans: {loans.Count}");
 
@@ -114,7 +124,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                             {
                                 attachments = JsonConvert.DeserializeObject<List<Attachment>>(documentsResponse) ?? new List<Attachment>();
                             }
-                            catch (JsonException ex)
+                            catch (Newtonsoft.Json.JsonException ex)
                             {
                                 _logger.LogError($"Error deserializing response: {ex.Message}");
                             }
@@ -177,7 +187,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
                     loanRequest.SellerName = sellerName;
                     loanRequest.OverrideDuplicateLoans = "0";
                 }
-                catch (JsonException ex)
+                catch (Newtonsoft.Json.JsonException ex)
                 {
                     _logger.LogError($"Error deserializing response: {ex.Message}");
                 }
