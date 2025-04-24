@@ -128,7 +128,7 @@ namespace VPM.Integration.Lauramac.AzureFunction
 
                         List<Attachment> attachments = new();
 
-                        if (!string.IsNullOrWhiteSpace(documentsResponse) && documentsResponse != "[]")
+                        if (documentsResponse != null && documentsResponse != "[]")
                         {
                             try
                             {
